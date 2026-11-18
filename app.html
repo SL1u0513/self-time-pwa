@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2F6B57">
+  <meta name="color-scheme" content="light">
+  <title>自留时间</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icons/icon-192.png">
+  <style>
+    :root{
+      color-scheme: light dark;
+      --bg:#F4F2EC; --card:#FFFFFF; --ink:#1E2A26; --sub:#6B7772;
+      --line:#E5E1D6; --accent:#2F6B57; --accent-dark:#245443;
+      --accent-soft:#E3EFEA; --danger:#B3402F; --danger-soft:#F7E7E2;
+      --radius:16px;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg:#151A18; --card:#212825; --ink:#ECEEEA; --sub:#9AA5A0;
+        --line:#333C38; --accent:#57A98B; --accent-dark:#3E8268;
+        --accent-soft:#24352F; --danger:#E07A5F; --danger-soft:#3A2622;
+      }
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      background:var(--bg); color:var(--ink);
+      font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+      font-size:16px; line-height:1.5;
+      padding-bottom:92px;
+    }
+    header{padding:22px 20px 6px}
+    header h1{font-size:21px;font-weight:700;letter-spacing:.5px}
+    header .date{color:var(--sub);font-size:13px;margin-top:3px}
+    main{padding:10px 16px}
+    .view{display:none}
+    .view.active{display:block}
+    h2{font-size:16px;font-weight:600;margin-bottom:10px}
+    .card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(30,42,38,.06)}
+
+    /* 首页概览 */
+    .stat-row{display:flex;gap:12px;margin-bottom:14px}
+    .stat-row .card{flex:1;margin-bottom:0}
+    .stat-num{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+    .stat-label{color:var(--sub);font-size:13px;margin-top:2px}
+
+    /* 计时卡片 */
+    .timer-wrap{text-align:center;padding:26px 16px 18px}
+    .big-time{font-size:46px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:1px}
+    .timer-sub{color:var(--sub);font-size:14px;margin:8px 0 20px}
+    .btn{border:none;border-radius:14px;padding:15px 20px;font-size:16px;font-weight:600;cursor:pointer;width:100%;font-family:inherit}
+    .btn-primary{background:var(--accent);color:#fff}
+    .btn-primary:active{background:var(--accent-dark)}
+    .btn-ghost{background:var(--accent-soft);color:var(--accent)}
+    .btn-danger-soft{background:var(--danger-soft);color:var(--danger);margin-top:10px}
+
+    /* 列表 */
+    .event-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+    .event-item:last-child{border-bottom:none}
+    .event-main{min-width:0}
+    .event-time{font-size:14px;font-variant-numeric:tabular-nums}
+    .event-meta{color:var(--sub);font-size:12px;margin-top:3px}
+    .event-dur{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .tag{display:inline-block;padding:2px 8px;border-radius:8px;background:var(--accent-soft);color:var(--accent);font-size:12px}
+
+    /* 周视图 */
+    .week-row{display:flex;align-items:center;gap:10px;margin:11px 0}
+    .week-day{width:44px;font-size:12px;color:var(--sub);flex:none}
+    .week-bar-wrap{flex:1;background:var(--bg);border-radius:8px;height:18px;overflow:hidden;min-width:0}
+    .week-bar{height:100%;background:var(--accent);border-radius:8px;min-width:2px}
+    .week-val{width:66px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums;flex:none}
+    .week-total{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);font-size:14px;display:flex;justify-content:space-between}
+    .week-total b{font-variant-numeric:tabular-nums}
+
+    /* 底线 */
+    .hint{font-size:13px;color:var(--sub);background:var(--accent-soft);border-radius:12px;padding:12px 14px;margin-bottom:14px;line-height:1.6}
+    .field{margin-bottom:12px}
+    .field label{display:block;font-size:13px;color:var(--sub);margin-bottom:6px}
+    .field input,.field textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:15px;font-family:inherit;background:var(--bg);color:var(--ink)}
+    .field textarea{min-height:64px;resize:vertical}
+    .rule-item{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+    .rule-item:last-child{border-bottom:none}
+    .rule-text{flex:1;min-width:0;font-size:15px;word-break:break-word}
+    .rule-item.off .rule-text{color:var(--sub);text-decoration:line-through}
+    .check{width:22px;height:22px;flex:none;border:2px solid var(--line);border-radius:8px;background:none;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center}
+    .check.on{background:var(--accent);border-color:var(--accent)}
+    .check svg{width:14px;height:14px;stroke:#fff;display:none}
+    .check.on svg{display:block}
+    .icon-btn{background:none;border:none;color:var(--sub);cursor:pointer;padding:6px;font-size:18px;flex:none}
+
+    /* 复盘历史 */
+    .review-item{padding:12px 0;border-bottom:1px solid var(--line)}
+    .review-item:last-child{border-bottom:none}
+    .review-date{font-weight:600;font-size:14px;margin-bottom:6px}
+    .review-line{font-size:14px;margin:3px 0;color:var(--ink)}
+    .review-line b{color:var(--sub);font-weight:500;margin-right:4px}
+
+    .empty{text-align:center;color:var(--sub);padding:30px 0;font-size:14px}
+
+    /* 底部导航 */
+    .tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;padding:6px 8px calc(6px + env(safe-area-inset-bottom));z-index:10}
+    .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0;color:var(--sub);font-size:12px;background:none;border:none;cursor:pointer;font-family:inherit}
+    .tab.active{color:var(--accent)}
+    .tab svg{width:22px;height:22px}
+
+    /* 底部弹层 */
+    .sheet-mask{position:fixed;inset:0;background:rgba(30,42,38,.4);display:none;z-index:20}
+    .sheet-mask.show{display:block}
+    .sheet{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-radius:20px 20px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom));z-index:21;transform:translateY(100%);transition:transform .22s ease}
+    .sheet.show{transform:translateY(0)}
+    .sheet h3{font-size:16px;margin-bottom:14px}
+    .reason-btn{display:block;width:100%;text-align:left;background:var(--bg);border:none;border-radius:12px;padding:15px 16px;margin-bottom:10px;font-size:15px;cursor:pointer;font-family:inherit;color:var(--ink)}
+    .reason-btn:active{background:var(--accent-soft)}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>自留时间</h1>
+    <div class="date" id="todayLabel"></div>
+  </header>
+
+  <main>
+    <!-- ===== 视图：计时 ===== -->
+    <section id="view-home" class="view active">
+      <div class="stat-row">
+        <div class="card"><div class="stat-num" id="todayCount">0</div><div class="stat-label">今日段数</div></div>
+        <div class="card"><div class="stat-num" id="todayDur">0分</div><div class="stat-label">今日自留时间</div></div>
+      </div>
+      <div class="card timer-wrap" id="timerCard"></div>
+    </section>
+
+    <!-- ===== 视图：统计 ===== -->
+    <section id="view-stats" class="view">
+      <div class="card">
+        <h2>今日明细</h2>
+        <div id="todayList"></div>
+      </div>
+      <div class="card">
+        <h2>近七天</h2>
+        <div id="weekList"></div>
+        <div class="week-total"><span>本周合计</span><b id="weekTotal">0分</b></div>
+      </div>
+    </section>
+
+    <!-- ===== 视图：底线 ===== -->
+    <section id="view-rules" class="view">
+      <div class="hint">底线是冷静时给自己定的规则，临场不再拉锯；也写下尊重他人的部分。</div>
+      <div class="card">
+        <div class="field" style="margin-bottom:10px">
+          <input id="ruleInput" placeholder="写下一条底线，如：游戏不超过 1 小时" maxlength="60">
+        </div>
+        <button class="btn btn-ghost" id="ruleAdd">添加底线</button>
+      </div>
+      <div class="card" id="ruleList"></div>
+    </section>
+
+    <!-- ===== 视图：复盘 ===== -->
+    <section id="view-review" class="view">
+      <div class="hint">复盘只面向未来：写完知道下一步做什么就停，不反复咀嚼过去。</div>
+      <div class="card">
+        <div class="field"><label>日期</label><input type="date" id="reviewDate"></div>
+        <div class="field"><label>今天做了什么</label><textarea id="reviewDid" placeholder="客观记录行为，不评价情绪"></textarea></div>
+        <div class="field"><label>结果如何</label><textarea id="reviewResult" placeholder="发生了什么，写事实和数据"></textarea></div>
+        <div class="field"><label>下次改一句</label><textarea id="reviewNext" placeholder="下一次具体怎么做"></textarea></div>
+        <button class="btn btn-primary" id="reviewSave">保存复盘</button>
+      </div>
+      <div class="card">
+        <h2>历史复盘</h2>
+        <div id="reviewList"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <button class="tab active" data-view="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      <span>计时</span>
+    </button>
+    <button class="tab" data-view="stats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+      <span>统计</span>
+    </button>
+    <button class="tab" data-view="rules">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg>
+      <span>底线</span>
+    </button>
+    <button class="tab" data-view="review">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg>
+      <span>复盘</span>
+    </button>
+  </nav>
+
+  <div class="sheet-mask" id="sheetMask"></div>
+  <div class="sheet" id="reasonSheet">
+    <h3>这段时间是怎么结束的？</h3>
+    <div id="reasonButtons"></div>
+  </div>
+
+  <script>
+    /* ==================== 工具函数 ==================== */
+    const $ = (id) => document.getElementById(id);
+    function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+    function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function dayKey(ts){
+      const d = new Date(ts);
+      const y = d.getFullYear();
+      const mo = String(d.getMonth()+1).padStart(2,'0');
+      const da = String(d.getDate()).padStart(2,'0');
+      return `${y}-${mo}-${da}`;
+    }
+    function fmtClock(ts){
+      const d = new Date(ts);
+      return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+    function fmtDur(ms){
+      ms = Math.max(0, ms);
+      const s = Math.floor(ms/1000);
+      const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+      if (h > 0) return `${h}小时${m}分`;
+      if (m > 0) return `${m}分${sec}秒`;
+      return `${sec}秒`;
+    }
+    function fmtHMS(ms){
+      ms = Math.max(0, ms);
+      const s = Math.floor(ms/1000);
+      const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+      const p = (n) => String(n).padStart(2,'0');
+      return `${p(h)}:${p(m)}:${p(sec)}`;
+    }
+    function last7Days(){
+      const arr = []; const now = new Date();
+      for (let i=6;i>=0;i--){ const d = new Date(now); d.setDate(now.getDate()-i); arr.push(dayKey(d.getTime())); }
+      return arr;
+    }
+
+    /* ==================== 数据层：IndexedDB ==================== */
+    const DB_NAME = 'self-time-db', DB_VERSION = 1;
+    let db = null;
+    function openDB(){
+      return new Promise((res, rej) => {
+        const r = indexedDB.open(DB_NAME, DB_VERSION);
+        r.onupgradeneeded = (e) => {
+          const d = e.target.result;
+          if (!d.objectStoreNames.contains('events')) d.createObjectStore('events', { keyPath:'id' });
+          if (!d.objectStoreNames.contains('reviews')) d.createObjectStore('reviews', { keyPath:'date' });
+          if (!d.objectStoreNames.contains('rules')) d.createObjectStore('rules', { keyPath:'id' });
+        };
+        r.onsuccess = (e) => { db = e.target.result; res(db); };
+        r.onerror = () => rej(r.error);
+      });
+    }
+    function store(name, mode){ return db.transaction(name, mode).objectStore(name); }
+    function getAll(name){
+      return new Promise((res, rej) => {
+        const q = store(name,'readonly').getAll();
+        q.onsuccess = () => res(q.result || []);
+        q.onerror = () => rej(q.error);
+      });
+    }
+    function getOne(name, key){
+      return new Promise((res, rej) => {
+        const q = store(name,'readonly').get(key);
+        q.onsuccess = () => res(q.result || null);
+        q.onerror = () => rej(q.error);
+      });
+    }
+    function put(name, val){
+      return new Promise((res, rej) => {
+        const r = store(name,'readwrite').put(val);
+        r.onsuccess = () => res();
+        r.onerror = () => rej(r.error);
+      });
+    }
+    function del(name, key){
+      return new Promise((res, rej) => {
+        const r = store(name,'readwrite').delete(key);
+        r.onsuccess = () => res();
+        r.onerror = () => rej(r.error);
+      });
+    }
+
+    /* ==================== 状态 ==================== */
+    const REASONS = { natural:'自然结束', interrupted:'被打断', switched:'中途切走', manual:'手动收尾' };
+    const REASON_ORDER = ['natural','interrupted','switched','manual'];
+    const DEFAULT_RULES = ['游戏不超过 1 小时', '睡前 30 分钟不碰手机', '和人聊天时不刷手机'];
+    const state = { active:null, events:[], rules:[], reviews:[], tickTimer:null };
+
+    /* ==================== 聚合 ==================== */
+    function todayEvents(){
+      const tk = dayKey(Date.now());
+      return state.events.filter(e => e.endAt && dayKey(e.startAt) === tk);
+    }
+    function sumDur(evs){ return evs.reduce((s,e) => s + (e.endAt - e.startAt), 0); }
+
+    /* ==================== 渲染：首页 ==================== */
+    function renderHome(){
+      const evs = todayEvents();
+      $('todayCount').textContent = String(evs.length);
+      $('todayDur').textContent = fmtDur(sumDur(evs));
+      renderTimer();
+    }
+    function renderTimer(){
+      const card = $('timerCard');
+      if (state.active){
+        const start = state.active.startAt;
+        card.innerHTML = `
+          <div class="big-time" id="liveTime">${fmtHMS(Date.now() - start)}</div>
+          <div class="timer-sub">开始于 ${fmtClock(start)} · 这段时间属于你</div>
+          <button class="btn btn-danger-soft" id="stopBtn">结束这段时间</button>`;
+        $('stopBtn').addEventListener('click', openReasonSheet);
+      } else {
+        card.innerHTML = `
+          <div class="timer-sub" style="margin-bottom:16px">现在没有进行中的时段<br>按下按钮，开始一段不被手机牵走的时间</div>
+          <button class="btn btn-primary" id="startBtn">开始一段自己的时间</button>`;
+        $('startBtn').addEventListener('click', startFocus);
+      }
+    }
+
+    /* ==================== 渲染：统计 ==================== */
+    function renderStats(){
+      const evs = todayEvents().slice().sort((a,b) => b.startAt - a.startAt);
+      const list = $('todayList');
+      if (evs.length === 0){
+        list.innerHTML = '<div class="empty">今天还没有记录，去计时一段吧</div>';
+      } else {
+        list.innerHTML = evs.map(e => `
+          <div class="event-item">
+            <div class="event-main">
+              <div class="event-time">${fmtClock(e.startAt)} — ${fmtClock(e.endAt)}</div>
+              <div class="event-meta"><span class="tag">${esc(REASONS[e.endReason] || '手动收尾')}</span></div>
+            </div>
+            <div class="event-dur">${fmtDur(e.endAt - e.startAt)}</div>
+          </div>`).join('');
+      }
+
+      const days = last7Days();
+      const map = {}; days.forEach(d => map[d] = 0);
+      state.events.forEach(e => { if (e.endAt){ const d = dayKey(e.startAt); if (d in map) map[d] += e.endAt - e.startAt; } });
+      const max = Math.max(60000, ...days.map(d => map[d]));
+      const weekLabels = ['日','一','二','三','四','五','六'];
+      $('weekList').innerHTML = days.map(d => {
+        const w = Math.round(map[d] / max * 100);
+        const label = '周' + weekLabels[new Date(d + 'T00:00:00').getDay()];
+        const isToday = d === dayKey(Date.now());
+        return `
+          <div class="week-row">
+            <div class="week-day">${isToday ? '今天' : label}</div>
+            <div class="week-bar-wrap"><div class="week-bar" style="width:${w}%"></div></div>
+            <div class="week-val">${fmtDur(map[d])}</div>
+          </div>`;
+      }).join('');
+      $('weekTotal').textContent = fmtDur(days.reduce((s,d) => s + map[d], 0));
+    }
+
+    /* ==================== 渲染：底线 ==================== */
+    function renderRules(){
+      const box = $('ruleList');
+      if (state.rules.length === 0){
+        box.innerHTML = '<div class="empty">还没有底线，先写一条吧</div>';
+        return;
+      }
+      box.innerHTML = state.rules.map(r => `
+        <div class="rule-item ${r.active ? '' : 'off'}">
+          <button class="check ${r.active ? 'on' : ''}" data-id="${esc(r.id)}" aria-label="切换启用">
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          </button>
+          <div class="rule-text">${esc(r.text)}</div>
+          <button class="icon-btn" data-del="${esc(r.id)}" aria-label="删除">×</button>
+        </div>`).join('');
+    }
+
+    /* ==================== 渲染：复盘 ==================== */
+    function renderReview(){
+      const list = $('reviewList');
+      const sorted = state.reviews.slice().sort((a,b) => b.date.localeCompare(a.date));
+      if (sorted.length === 0){
+        list.innerHTML = '<div class="empty">还没有复盘记录</div>';
+      } else {
+        list.innerHTML = sorted.map(r => `
+          <div class="review-item">
+            <div class="review-date">${esc(r.date)}</div>
+            <div class="review-line"><b>做了什么</b>${esc(r.did || '—')}</div>
+            <div class="review-line"><b>结果</b>${esc(r.result || '—')}</div>
+            <div class="review-line"><b>下次</b>${esc(r.next || '—')}</div>
+          </div>`).join('');
+      }
+    }
+    function loadReviewForm(date){
+      const r = state.reviews.find(x => x.date === date);
+      $('reviewDid').value = r ? r.did : '';
+      $('reviewResult').value = r ? r.result : '';
+      $('reviewNext').value = r ? r.next : '';
+    }
+
+    /* ==================== 计时动作 ==================== */
+    async function startFocus(){
+      const ev = { id:uid(), type:'focus', startAt:Date.now(), endAt:null, endReason:null, note:'', createdAt:Date.now() };
+      await put('events', ev);
+      state.events.push(ev);
+      state.active = ev;
+      renderHome();
+    }
+    async function stopFocus(reason){
+      const ev = state.active;
+      if (!ev) return;
+      ev.endAt = Date.now();
+      ev.endReason = reason;
+      await put('events', ev);
+      state.active = null;
+      closeSheet();
+      await refresh();
+    }
+    function openReasonSheet(){
+      $('reasonButtons').innerHTML = REASON_ORDER.map(r => `<button class="reason-btn" data-reason="${r}">${REASONS[r]}</button>`).join('');
+      $('reasonSheet').classList.add('show');
+      $('sheetMask').classList.add('show');
+    }
+    function closeSheet(){
+      $('reasonSheet').classList.remove('show');
+      $('sheetMask').classList.remove('show');
+    }
+    async function recoverActive(){
+      const open = state.events.filter(e => e.endAt == null);
+      for (const ev of open.slice(1)){
+        ev.endAt = ev.startAt; ev.endReason = 'manual';
+        await put('events', ev);
+      }
+      state.active = open[0] || null;
+    }
+
+    /* ==================== 刷新与路由 ==================== */
+    function refresh(){
+      renderHome();
+      const view = location.hash.replace('#/','') || 'home';
+      if (view === 'stats') renderStats();
+      if (view === 'rules') renderRules();
+      if (view === 'review') renderReview();
+    }
+    function route(){
+      const view = location.hash.replace('#/','') || 'home';
+      document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + view));
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+      if (view === 'stats') renderStats();
+      if (view === 'rules') renderRules();
+      if (view === 'review'){ loadReviewForm($('reviewDate').value || dayKey(Date.now())); renderReview(); }
+    }
+    function startTick(){
+      clearInterval(state.tickTimer);
+      state.tickTimer = setInterval(() => {
+        if (state.active){
+          const el = $('liveTime');
+          if (el) el.textContent = fmtHMS(Date.now() - state.active.startAt);
+        }
+      }, 500);
+    }
+
+    /* ==================== 事件绑定 ==================== */
+    function bindUI(){
+      document.querySelectorAll('.tab').forEach(t => {
+        t.addEventListener('click', () => { location.hash = '#/' + t.dataset.view; });
+      });
+      window.addEventListener('hashchange', route);
+
+      $('reasonButtons').addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-reason]');
+        if (btn) stopFocus(btn.dataset.reason);
+      });
+      $('sheetMask').addEventListener('click', closeSheet);
+
+      $('ruleAdd').addEventListener('click', async () => {
+        const input = $('ruleInput');
+        const text = input.value.trim();
+        if (!text) return;
+        await put('rules', { id:uid(), text, active:true, createdAt:Date.now() });
+        input.value = '';
+        state.rules = await getAll('rules');
+        renderRules();
+      });
+      $('ruleList').addEventListener('click', async (e) => {
+        const check = e.target.closest('[data-id]');
+        const delBtn = e.target.closest('[data-del]');
+        if (check){
+          const r = state.rules.find(x => x.id === check.dataset.id);
+          if (r){ r.active = !r.active; await put('rules', r); renderRules(); }
+        } else if (delBtn){
+          await del('rules', delBtn.dataset.del);
+          state.rules = await getAll('rules');
+          renderRules();
+        }
+      });
+
+      $('reviewDate').addEventListener('change', () => loadReviewForm($('reviewDate').value));
+      $('reviewSave').addEventListener('click', async () => {
+        const date = $('reviewDate').value || dayKey(Date.now());
+        await put('reviews', {
+          date,
+          did: $('reviewDid').value.trim(),
+          result: $('reviewResult').value.trim(),
+          next: $('reviewNext').value.trim(),
+          updatedAt: Date.now()
+        });
+        state.reviews = await getAll('reviews');
+        renderReview();
+      });
+    }
+
+    /* ==================== 初始化 ==================== */
+    async function init(){
+      await openDB();
+      const [events, rules, reviews] = await Promise.all([getAll('events'), getAll('rules'), getAll('reviews')]);
+      state.events = events; state.rules = rules; state.reviews = reviews;
+      if (rules.length === 0){
+        for (const t of DEFAULT_RULES){
+          await put('rules', { id:uid(), text:t, active:true, createdAt:Date.now() });
+        }
+        state.rules = await getAll('rules');
+      }
+      await recoverActive();
+
+      const now = new Date();
+      const week = ['日','一','二','三','四','五','六'][now.getDay()];
+      $('todayLabel').textContent = `${now.getFullYear()} 年 ${now.getMonth()+1} 月 ${now.getDate()} 日 · 星期${week}`;
+      $('reviewDate').value = dayKey(now.getTime());
+
+      bindUI();
+      route();
+      refresh();
+      startTick();
+
+      if ('serviceWorker' in navigator){
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').catch(() => {});
+        });
+      }
+    }
+    init().catch((err) => { console.error('初始化失败', err); });
+  </script>
+</body>
+</html>

@@ -96,15 +96,19 @@ gh repo create self-time-pwa --public --source=. --remote=origin --push
 
 > 令牌等同于密码，不要写进代码、提交或截图；用完可在 GitHub 后台撤销。
 
-### 开启 GitHub Pages 拿到长期访问链接
+### GitHub Pages（已上线）
 
-推送完成后：仓库 → **Settings** → **Pages** → Source 选 `Deploy from a branch` → 分支 `main`、目录 `/ (root)` → **Save**。约一分钟后访问：
+仓库：https://github.com/SL1u0513/self-time-pwa （公开，默认分支 `main`）
+
+Pages 已从 `main` 分支根目录启用，长期访问链接：
 
 ```
-https://SL1u0513.github.io/self-time-pwa/app.html
+https://sl1u0513.github.io/self-time-pwa/app.html
 ```
 
 该链接是 HTTPS，手机浏览器打开后即可"添加到主屏幕"，不再依赖 USB 转发。注意：免费 Pages 要求仓库公开。
+
+> 若以后需要手动调整：仓库 → **Settings** → **Pages** → Source 选 `Deploy from a branch` → 分支 `main`、目录 `/ (root)` → **Save**。
 
 ## 数据说明
 

@@ -52,6 +52,60 @@ adb reverse tcp:8088 tcp:8088
 
 Android 上用 Chrome / Edge 打开页面后：菜单（三个点）→ **添加到主屏幕** / **安装应用**。之后桌面会出现"自留时间"图标，点开全屏运行，可离线打开。
 
+## 推送到 GitHub（远程仓库）
+
+本地已初始化 git 仓库：分支 `main`，首次提交已完成，身份为 GitHub 账号 `SL1u0513`。
+
+### 当前环境卡点（2026-11-18 实测）
+
+- 内置 GitHub 连接器只有只读权限，不能建仓库或推送。
+- 当前校园网下 `github.com` 主站 HTTPS 超时（被干扰），但 `api.github.com` 可达；`gh` 未登录、无缓存凭据、无 SSH 密钥。
+- 因此远程推送需要先解决一条可写认证通道，二选一。
+
+### 路径一：开代理后走浏览器授权（推荐）
+
+1. 启动本机代理软件并打开系统代理（原残留配置为 `127.0.0.1:7890`），确认浏览器能打开 `https://github.com`。
+2. 在项目目录执行：
+
+```powershell
+gh auth login --hostname github.com --git-protocol https --web
+```
+
+3. 复制终端显示的一次性码，浏览器打开 `https://github.com/login/device` 粘贴并授权。
+4. 登录成功后建仓并推送：
+
+```powershell
+gh repo create self-time-pwa --public --source=. --remote=origin --push
+```
+
+### 路径二：用个人访问令牌（PAT）
+
+1. 在能访问 GitHub 的环境下，头像 → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token，勾选 `repo` 权限，生成后复制。
+2. 登录（令牌只走 `api.github.com`，当前网络可达）：
+
+```powershell
+$env:GH_TOKEN="ghp_你的令牌"
+gh auth login --with-token
+```
+
+3. 建仓并推送：
+
+```powershell
+gh repo create self-time-pwa --public --source=. --remote=origin --push
+```
+
+> 令牌等同于密码，不要写进代码、提交或截图；用完可在 GitHub 后台撤销。
+
+### 开启 GitHub Pages 拿到长期访问链接
+
+推送完成后：仓库 → **Settings** → **Pages** → Source 选 `Deploy from a branch` → 分支 `main`、目录 `/ (root)` → **Save**。约一分钟后访问：
+
+```
+https://SL1u0513.github.io/self-time-pwa/app.html
+```
+
+该链接是 HTTPS，手机浏览器打开后即可"添加到主屏幕"，不再依赖 USB 转发。注意：免费 Pages 要求仓库公开。
+
 ## 数据说明
 
 - 记录存在浏览器 IndexedDB 中，卸载浏览器、清除站点数据会一并删除，重要复盘可手动抄录。
